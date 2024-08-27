@@ -1,30 +1,27 @@
 package org.example;
 
-import java.util.stream.IntStream;
-import java.util.OptionalInt;
-
 public class AffordableVacation {
-  
+
+  static int [] sumsOfFirstCities;
+  static boolean[] affordable;
+
   public static String findMinCost(int money, int days, int[] cost) {
+    affordable = new boolean[days+1];
     //sums for city 0 and duration between 0 and days;
-    int[] sumsOfFirstCities = new int[days+1]; // -> sums[0] = 0;
+    sumsOfFirstCities = new int[days+1]; // -> sums[0] = 0;
     for (int duration = 1; duration <= days; duration++){
       sumsOfFirstCities[duration] = sumsOfFirstCities[duration-1] + cost[duration-1];
     }
-    int minCost = getMinCost(sumsOfFirstCities[days], days, cost);
+    int minCost = getMinCost(days, cost);
     if (minCost <= money)
       return "money: " + minCost;
-    for (int duration = days-1; duration > 0; duration--){
-      System.out.println(duration);
-      if (isAffordable(money, sumsOfFirstCities[duration], duration, cost))
-        return "days: " + duration;
-    }
-    return "days: 0";
+    int affordableDuration = getLongestAffordableDuration(minCost, money, days, cost);
+    return "days: " + affordableDuration;
   }
-   
-  private static int getMinCost(int costForFirstCity, int days, int[] cost) {
-    int minCost = costForFirstCity;
-    int currentCost = costForFirstCity;
+
+  private static int getMinCost(int days, int[] cost) {
+    int currentCost = sumsOfFirstCities[days];
+    int minCost = currentCost;
     int city = 0;
     while (city + days < cost.length){
       currentCost = currentCost - cost[city] + cost[city+days];
@@ -34,7 +31,34 @@ public class AffordableVacation {
     }
     return minCost;
   }
-  
+
+  private static int getLongestAffordableDuration(int minCost, int money, int days, int[] cost) {
+    int attemptedDuration = getNextAttempt(minCost, money, days);
+    do {
+      int attemptedMinCost = getMinCost(attemptedDuration, cost);
+      if (attemptedMinCost <= money){
+        for (int duration=0; duration <= attemptedDuration; duration++) {
+          affordable[duration] = true;
+        }
+      };
+      attemptedDuration = getNextAttempt(attemptedMinCost, money, attemptedDuration);
+    }
+    while (!affordable[attemptedDuration] || affordable[attemptedDuration+1]);
+    return attemptedDuration;
+  }
+
+  private static int getNextAttempt(int oldMinCost, int money, int oldDuration) {
+    int guess = oldMinCost / money * oldDuration;
+    if (!affordable[guess])
+      return guess < oldDuration ? guess : oldDuration-1;
+    // if guess is affordable, find next duration which is too expensive
+    while (affordable[guess]) {
+      guess++;
+    }
+    System.out.println(guess);
+    return guess;
+  }
+
   private static boolean isAffordable(int money, int costForFirstCity, int duration, int[] cost)  {
     int currentCost = costForFirstCity;
     boolean affordable = (costForFirstCity <= money);
